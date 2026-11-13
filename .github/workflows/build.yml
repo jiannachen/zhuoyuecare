@@ -1,0 +1,554 @@
+name: Build ZhuoYue APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate App
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/java/com/family/babylog \
+            app/src/main/res/drawable \
+            app/src/main/res/mipmap-anydpi-v26 \
+            app/src/main/res/values
+
+          cat << 'EOF' > settings.gradle.kts
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
+          rootProject.name = "BabyLog"
+          include(":app")
+          EOF
+
+          cat << 'EOF' > build.gradle.kts
+          plugins {
+              id("com.android.application") version "8.7.3" apply false
+              id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+              id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false
+              id("com.google.devtools.ksp") version "2.0.21-1.0.28" apply false
+          }
+          EOF
+
+          cat << 'EOF' > gradle.properties
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          kotlin.code.style=official
+          android.nonTransitiveRClass=true
+          EOF
+
+          cat << 'EOF' > app/build.gradle.kts
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+              id("org.jetbrains.kotlin.plugin.compose")
+              id("com.google.devtools.ksp")
+          }
+          android {
+              namespace = "com.family.babylog"
+              compileSdk = 35
+              defaultConfig {
+                  applicationId = "com.family.babylog"
+                  minSdk = 26
+                  targetSdk = 35
+                  versionCode = 1
+                  versionName = "1.0.0"
+              }
+              buildTypes { release { isMinifyEnabled = false } }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = "17" }
+              buildFeatures { compose = true }
+          }
+          dependencies {
+              implementation(platform("androidx.compose:compose-bom:2024.12.01"))
+              implementation("androidx.core:core-ktx:1.15.0")
+              implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+              implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+              implementation("androidx.activity:activity-compose:1.9.3")
+              implementation("androidx.compose.ui:ui")
+              implementation("androidx.compose.ui:ui-graphics")
+              implementation("androidx.compose.material3:material3")
+              implementation("androidx.compose.material:material-icons-core")
+              implementation("androidx.room:room-runtime:2.6.1")
+              implementation("androidx.room:room-ktx:2.6.1")
+              ksp("androidx.room:room-compiler:2.6.1")
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:name=".BabyLogApp"
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:label="@string/app_name"
+                  android:supportsRtl="true"
+                  android:theme="@android:style/Theme.Material.Light.NoActionBar">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/values/strings.xml
+          <resources><string name="app_name">濯玥记录</string></resources>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/drawable/ic_launcher_background.xml
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+              <solid android:color="#DF7A8E" />
+          </shape>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/drawable/ic_launcher_foreground.xml
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+              <path android:fillColor="#FFFFFF"
+                  android:pathData="M54,76 C54,76 30,60 30,43 C30,35 36,29 44,29 C48.8,29 52.2,31.6 54,35.2 C55.8,31.6 59.2,29 64,29 C72,29 78,35 78,43 C78,60 54,76 54,76 Z" />
+              <path android:fillColor="#F4B8C4"
+                  android:pathData="M54,43 Q54,51 62,51 Q54,51 54,59 Q54,51 46,51 Q54,51 54,43 Z" />
+          </vector>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@drawable/ic_launcher_background" />
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+          </adaptive-icon>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@drawable/ic_launcher_background" />
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+          </adaptive-icon>
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/family/babylog/DataLayer.kt
+          package com.family.babylog
+
+          import android.app.Application
+          import android.content.Context
+          import androidx.room.*
+          import kotlinx.coroutines.flow.Flow
+          import org.json.JSONArray
+          import org.json.JSONObject
+          import java.time.Instant
+          import java.time.LocalDate
+          import java.time.ZoneId
+          import java.time.format.DateTimeFormatter
+
+          object RecordType {
+              const val BOTTLE = "bottle"
+              const val BREAST = "breast"
+              const val STOOL = "stool"
+              const val URINE = "urine"
+              const val SPIT = "spit"
+              const val WEIGHT = "weight"
+          }
+
+          @Entity(tableName = "baby_records", indices = [Index("timestamp"), Index("type", "timestamp")])
+          data class BabyRecordEntity(
+              @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+              val type: String,
+              val timestamp: Long,
+              val amount: Int? = null,
+              val duration: Int? = null,
+              val side: String? = null,
+              val condition: String? = null,
+              val weight: Double? = null,
+              val note: String? = null,
+              val createdAt: Long = System.currentTimeMillis(),
+              val updatedAt: Long = System.currentTimeMillis()
+          )
+
+          @Dao
+          interface BabyRecordDao {
+              @Query("SELECT * FROM baby_records WHERE timestamp >= :start AND timestamp < :end ORDER BY timestamp DESC")
+              fun observeBetween(start: Long, end: Long): Flow<List<BabyRecordEntity>>
+
+              @Query("SELECT * FROM baby_records WHERE timestamp >= :since ORDER BY timestamp ASC")
+              fun observeSince(since: Long): Flow<List<BabyRecordEntity>>
+
+              @Query("SELECT * FROM baby_records WHERE type = 'weight' ORDER BY timestamp ASC")
+              fun observeWeights(): Flow<List<BabyRecordEntity>>
+
+              @Query("SELECT * FROM baby_records ORDER BY timestamp ASC")
+              suspend fun getAllOnce(): List<BabyRecordEntity>
+
+              @Insert(onConflict = OnConflictStrategy.REPLACE)
+              suspend fun insert(record: BabyRecordEntity): Long
+
+              @Insert(onConflict = OnConflictStrategy.REPLACE)
+              suspend fun insertAll(records: List<BabyRecordEntity>)
+
+              @Update
+              suspend fun update(record: BabyRecordEntity)
+
+              @Delete
+              suspend fun delete(record: BabyRecordEntity)
+
+              @Query("DELETE FROM baby_records")
+              suspend fun deleteAll()
+
+              @Transaction
+              suspend fun replaceAll(records: List<BabyRecordEntity>) { deleteAll(); insertAll(records) }
+          }
+
+          @Database(entities = [BabyRecordEntity::class], version = 1, exportSchema = false)
+          abstract class AppDatabase : RoomDatabase() {
+              abstract fun dao(): BabyRecordDao
+              companion object {
+                  @Volatile private var INSTANCE: AppDatabase? = null
+                  fun get(ctx: Context): AppDatabase = INSTANCE ?: synchronized(this) {
+                      INSTANCE ?: Room.databaseBuilder(ctx.applicationContext, AppDatabase::class.java, "baby_log.db")
+                          .build().also { INSTANCE = it }
+                  }
+              }
+          }
+
+          class BabyRecordRepository(private val dao: BabyRecordDao) {
+              fun observeDate(date: LocalDate): Flow<List<BabyRecordEntity>> {
+                  val z = ZoneId.systemDefault()
+                  return dao.observeBetween(date.atStartOfDay(z).toInstant().toEpochMilli(), date.plusDays(1).atStartOfDay(z).toInstant().toEpochMilli())
+              }
+              fun observeSinceDays(days: Long): Flow<List<BabyRecordEntity>> =
+                  dao.observeSince(LocalDate.now().minusDays(days - 1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
+              fun observeWeights(): Flow<List<BabyRecordEntity>> = dao.observeWeights()
+              suspend fun allOnce(): List<BabyRecordEntity> = dao.getAllOnce()
+              suspend fun insert(r: BabyRecordEntity) = System.currentTimeMillis().let { now -> dao.insert(r.copy(createdAt = now, updatedAt = now)) }
+              suspend fun update(r: BabyRecordEntity) = dao.update(r.copy(updatedAt = System.currentTimeMillis()))
+              suspend fun delete(r: BabyRecordEntity) = dao.delete(r)
+              suspend fun replaceAll(list: List<BabyRecordEntity>) = dao.replaceAll(list)
+              suspend fun deleteAll() = dao.deleteAll()
+          }
+
+          object BackupSerializer {
+              private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
+              fun toJson(records: List<BabyRecordEntity>): String {
+                  val arr = JSONArray()
+                  records.forEach { r ->
+                      arr.put(JSONObject().apply {
+                          put("id", r.id); put("type", r.type); put("timestamp", r.timestamp)
+                          put("amount", r.amount ?: JSONObject.NULL); put("duration", r.duration ?: JSONObject.NULL)
+                          put("side", r.side ?: JSONObject.NULL); put("condition", r.condition ?: JSONObject.NULL)
+                          put("weight", r.weight ?: JSONObject.NULL); put("note", r.note ?: JSONObject.NULL)
+                          put("createdAt", r.createdAt); put("updatedAt", r.updatedAt)
+                      })
+                  }
+                  return JSONObject().apply { put("version", 1); put("exportedAt", System.currentTimeMillis()); put("records", arr) }.toString(2)
+              }
+              fun fromJson(text: String): List<BabyRecordEntity> {
+                  val arr = JSONObject(text).getJSONArray("records")
+                  val now = System.currentTimeMillis()
+                  return List(arr.length()) { i ->
+                      val o = arr.getJSONObject(i)
+                      BabyRecordEntity(
+                          id = 0L, type = o.getString("type"), timestamp = o.getLong("timestamp"),
+                          amount = if (o.isNull("amount")) null else o.getInt("amount"),
+                          duration = if (o.isNull("duration")) null else o.getInt("duration"),
+                          side = if (o.isNull("side")) null else o.getString("side"),
+                          condition = if (o.isNull("condition")) null else o.getString("condition"),
+                          weight = if (o.isNull("weight")) null else o.getDouble("weight"),
+                          note = if (o.isNull("note")) null else o.getString("note"),
+                          createdAt = o.optLong("createdAt", now), updatedAt = o.optLong("updatedAt", now)
+                      )
+                  }
+              }
+              fun toCsv(records: List<BabyRecordEntity>): String {
+                  val sb = StringBuilder("\uFEFF时间,类型,奶量(ml),时长(分钟),喂养侧,性状或程度,体重(kg),备注\n")
+                  records.forEach { r ->
+                      val note = "\"${(r.note ?: "").replace("\"", "\"\"")}\""
+                      sb.appendLine(listOf(fmt.format(Instant.ofEpochMilli(r.timestamp)), r.type, r.amount ?: "", r.duration ?: "", r.side ?: "", r.condition ?: "", r.weight ?: "", note).joinToString(","))
+                  }
+                  return sb.toString()
+              }
+          }
+
+          class BabyLogApp : Application() {
+              val repository: BabyRecordRepository by lazy { BabyRecordRepository(AppDatabase.get(this).dao()) }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/family/babylog/MainViewModel.kt
+          package com.family.babylog
+
+          import androidx.lifecycle.ViewModel
+          import androidx.lifecycle.ViewModelProvider
+          import androidx.lifecycle.viewModelScope
+          import kotlinx.coroutines.ExperimentalCoroutinesApi
+          import kotlinx.coroutines.flow.*
+          import kotlinx.coroutines.launch
+          import java.time.Instant
+          import java.time.LocalDate
+          import java.time.ZoneId
+          import java.time.format.DateTimeFormatter
+
+          data class DaySummary(
+              val totalMilkMl: Int = 0, val breastCount: Int = 0, val bottleCount: Int = 0,
+              val stoolCount: Int = 0, val urineCount: Int = 0, val spitCount: Int = 0,
+              val lastFeedingTimestamp: Long? = null
+          )
+
+          data class DailyTrendPoint(val label: String, val milkMl: Int, val feedingCount: Int, val stoolCount: Int, val urineCount: Int)
+
+          data class StatsState(
+              val last7Days: List<DailyTrendPoint> = emptyList(),
+              val last30Days: List<DailyTrendPoint> = emptyList(),
+              val avgMilk7Days: Int = 0, val avgFeeding7Days: Double = 0.0,
+              val avgStool7Days: Double = 0.0, val avgUrine7Days: Double = 0.0,
+              val weightRecords: List<BabyRecordEntity> = emptyList(),
+              val alerts: List<String> = emptyList()
+          )
+
+          @OptIn(ExperimentalCoroutinesApi::class)
+          class MainViewModel(private val repo: BabyRecordRepository) : ViewModel() {
+              private val todayDate = MutableStateFlow(LocalDate.now())
+              private val _historyDate = MutableStateFlow(LocalDate.now())
+              val selectedHistoryDate: StateFlow<LocalDate> = _historyDate.asStateFlow()
+
+              val todayRecords = todayDate.flatMapLatest { repo.observeDate(it) }
+                  .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+              val todaySummary = todayRecords.map { summarize(it) }
+                  .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DaySummary())
+
+              val historyRecords = _historyDate.flatMapLatest { repo.observeDate(it) }
+                  .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+              val historySummary = historyRecords.map { summarize(it) }
+                  .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DaySummary())
+
+              val statsState = combine(repo.observeSinceDays(30), repo.observeWeights()) { r30, weights ->
+                  buildStats(r30, weights)
+              }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
+
+              fun refreshToday() { val now = LocalDate.now(); if (todayDate.value != now) todayDate.value = now }
+              fun selectHistoryDate(d: LocalDate) { _historyDate.value = d }
+              fun saveRecord(r: BabyRecordEntity) { viewModelScope.launch { if (r.id == 0L) repo.insert(r) else repo.update(r) } }
+              fun deleteRecord(r: BabyRecordEntity) { viewModelScope.launch { repo.delete(r) } }
+              suspend fun exportJson() = BackupSerializer.toJson(repo.allOnce())
+              suspend fun exportCsv() = BackupSerializer.toCsv(repo.allOnce())
+              suspend fun importRecords(list: List<BabyRecordEntity>) = repo.replaceAll(list)
+              suspend fun deleteAllData() = repo.deleteAll()
+
+              private fun summarize(list: List<BabyRecordEntity>): DaySummary {
+                  var milk = 0; var breast = 0; var bottle = 0; var stool = 0; var urine = 0; var spit = 0
+                  var lastFeed: Long? = null
+                  list.forEach { r ->
+                      when (r.type) {
+                          RecordType.BOTTLE -> { bottle++; milk += r.amount ?: 0; lastFeed = maxOf(lastFeed ?: 0L, r.timestamp) }
+                          RecordType.BREAST -> { breast++; lastFeed = maxOf(lastFeed ?: 0L, r.timestamp) }
+                          RecordType.STOOL -> stool++
+                          RecordType.URINE -> urine++
+                          RecordType.SPIT -> spit++
+                      }
+                  }
+                  return DaySummary(milk, breast, bottle, stool, urine, spit, lastFeed)
+              }
+
+              private fun buildStats(records30: List<BabyRecordEntity>, weights: List<BabyRecordEntity>): StatsState {
+                  val zone = ZoneId.systemDefault()
+                  val today = LocalDate.now(zone)
+                  val fmt = DateTimeFormatter.ofPattern("MM/dd")
+                  val byDate = records30.groupBy { Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate() }
+                  val last30 = (29 downTo 0).map { offset ->
+                      val d = today.minusDays(offset.toLong())
+                      val dayList = byDate[d].orEmpty()
+                      DailyTrendPoint(
+                          label = d.format(fmt),
+                          milkMl = dayList.filter { it.type == RecordType.BOTTLE }.sumOf { it.amount ?: 0 },
+                          feedingCount = dayList.count { it.type == RecordType.BOTTLE || it.type == RecordType.BREAST },
+                          stoolCount = dayList.count { it.type == RecordType.STOOL },
+                          urineCount = dayList.count { it.type == RecordType.URINE }
+                      )
+                  }
+                  val last7 = last30.takeLast(7)
+                  val alerts = mutableListOf<String>()
+                  val r3 = last30.takeLast(3).map { it.milkMl }.average()
+                  val p7 = last30.dropLast(3).takeLast(7).map { it.milkMl }.average()
+                  if (p7 > 100 && r3 < p7 * 0.85) alerts.add("最近 3 天日均奶瓶奶量（${r3.toInt()} ml）比前 7 天（${p7.toInt()} ml）有所下降，仅作统计参考。")
+                  if ((last30.lastOrNull()?.stoolCount ?: 0) == 0) alerts.add("今天暂未记录大便。")
+
+                  return StatsState(
+                      last7Days = last7, last30Days = last30,
+                      avgMilk7Days = last7.sumOf { it.milkMl } / 7,
+                      avgFeeding7Days = last7.sumOf { it.feedingCount } / 7.0,
+                      avgStool7Days = last7.sumOf { it.stoolCount } / 7.0,
+                      avgUrine7Days = last7.sumOf { it.urineCount } / 7.0,
+                      weightRecords = weights, alerts = alerts
+                  )
+              }
+
+              class Factory(private val repo: BabyRecordRepository) : ViewModelProvider.Factory {
+                  @Suppress("UNCHECKED_CAST")
+                  override fun <T : ViewModel> create(modelClass: Class<T>): T = MainViewModel(repo) as T
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/family/babylog/UiComponents.kt
+          package com.family.babylog
+
+          import androidx.compose.foundation.Canvas
+          import androidx.compose.foundation.layout.*
+          import androidx.compose.foundation.rememberScrollState
+          import androidx.compose.foundation.text.KeyboardOptions
+          import androidx.compose.foundation.verticalScroll
+          import androidx.compose.material3.*
+          import androidx.compose.runtime.*
+          import androidx.compose.ui.Alignment
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.geometry.CornerRadius
+          import androidx.compose.ui.geometry.Offset
+          import androidx.compose.ui.geometry.Size
+          import androidx.compose.ui.graphics.Color
+          import androidx.compose.ui.graphics.Path
+          import androidx.compose.ui.graphics.StrokeCap
+          import androidx.compose.ui.graphics.drawscope.Stroke
+          import androidx.compose.ui.text.input.KeyboardType
+          import androidx.compose.ui.text.style.TextAlign
+          import androidx.compose.ui.unit.dp
+          import java.time.*
+          import java.time.format.DateTimeFormatter
+
+          private val timeFmt = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
+          fun formatRecordTime(ts: Long): String = timeFmt.format(Instant.ofEpochMilli(ts))
+
+          fun formatRecordEmoji(type: String): String = when (type) {
+              RecordType.BOTTLE -> "🍼"; RecordType.BREAST -> "🤱"; RecordType.STOOL -> "💩"
+              RecordType.URINE -> "💧"; RecordType.SPIT -> "🤮"; RecordType.WEIGHT -> "⚖️"; else -> "📝"
+          }
+
+          fun formatRecordTitle(r: BabyRecordEntity): String = when (r.type) {
+              RecordType.BOTTLE -> (if (r.condition == "breast_milk") "母乳瓶喂" else "配方奶") + " ${r.amount ?: 0} ml"
+              RecordType.BREAST -> "亲喂母乳 ${r.duration ?: 0} 分钟 (" + when (r.side) { "left" -> "左侧"; "right" -> "右侧"; else -> "双侧" } + ")"
+              RecordType.STOOL -> "大便 (" + when (r.condition) { "loose" -> "稀"; "dry" -> "偏干"; "other" -> "其他"; else -> "正常" } + ")"
+              RecordType.URINE -> "小便"
+              RecordType.SPIT -> "吐奶 (" + when (r.condition) { "large" -> "较多"; "medium" -> "中等"; else -> "少量" } + ")"
+              RecordType.WEIGHT -> "体重 ${r.weight ?: 0.0} kg"
+              else -> r.type
+          }
+
+          fun formatDurationSince(lastMs: Long?, nowMs: Long): String {
+              if (lastMs == null) return "暂无喂养记录"
+              val mins = ((nowMs - lastMs) / 60_000L).coerceAtLeast(0L)
+              val h = mins / 60L; val m = mins % 60L
+              return if (h > 0) "距离上次喂养：$h 小时 $m 分钟" else "距离上次喂养：$m 分钟"
+          }
+
+          data class ChartPoint(val label: String, val value: Float)
+
+          @Composable
+          fun SimpleBarChart(items: List<ChartPoint>, barColor: Color) {
+              if (items.isEmpty()) { Text("暂无数据"); return }
+              val maxVal = (items.maxOfOrNull { it.value } ?: 0f).coerceAtLeast(1f)
+              Column(Modifier.fillMaxWidth()) {
+                  Row(Modifier.fillMaxWidth().height(140.dp), Arrangement.SpaceEvenly, Alignment.Bottom) {
+                      items.forEach { item ->
+                          Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
+                              Text(if (item.value > 0f) item.value.toInt().toString() else "", style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+                              Spacer(Modifier.height(4.dp))
+                              Canvas(Modifier.width(20.dp).height(100.dp)) {
+                                  val h = (item.value / maxVal) * size.height
+                                  if (h > 0f) drawRoundRect(barColor, Offset(0f, size.height - h), Size(size.width, h), CornerRadius(8f, 8f))
+                              }
+                          }
+                      }
+                  }
+                  Spacer(Modifier.height(6.dp))
+                  Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
+                      items.forEach { Text(it.label, Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall) }
+                  }
+              }
+          }
+
+          @Composable
+          fun SimpleLineChart(items: List<ChartPoint>, lineColor: Color, unitSuffix: String = "") {
+              if (items.isEmpty()) { Text("暂无数据"); return }
+              val minV = items.minOf { it.value }; val maxV = items.maxOf { it.value }
+              val span = (maxV - minV).takeIf { it > 0.001f } ?: 1f
+              val fmtNum: (Float) -> String = { if (it % 1f == 0f) it.toInt().toString() else String.format("%.1f", it) }
+              Column(Modifier.fillMaxWidth()) {
+                  Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                      Text("最低 ${fmtNum(minV)}$unitSuffix", style = MaterialTheme.typography.labelSmall)
+                      Text("最高 ${fmtNum(maxV)}$unitSuffix", style = MaterialTheme.typography.labelSmall)
+                  }
+                  Spacer(Modifier.height(6.dp))
+                  Canvas(Modifier.fillMaxWidth().height(125.dp).padding(8.dp)) {
+                      if (items.size == 1) { drawCircle(lineColor, 10f, Offset(size.width / 2f, size.height / 2f)); return@Canvas }
+                      val stepX = size.width / (items.size - 1).coerceAtLeast(1)
+                      val path = Path()
+                      val pts = items.mapIndexed { i, p -> Offset(i * stepX, size.height - ((p.value - minV) / span) * size.height) }
+                      pts.forEachIndexed { i, pt -> if (i == 0) path.moveTo(pt.x, pt.y) else path.lineTo(pt.x, pt.y) }
+                      drawPath(path, lineColor, style = Stroke(6f, cap = StrokeCap.Round))
+                      if (pts.size <= 16) pts.forEach { drawCircle(lineColor, 7f, it) }
+                  }
+                  Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                      Text(items.first().label, style = MaterialTheme.typography.labelSmall)
+                      if (items.size >= 3) Text(items[items.size / 2].label, style = MaterialTheme.typography.labelSmall)
+                      Text(items.last().label, style = MaterialTheme.typography.labelSmall)
+                  }
+              }
+          }
+
+          @OptIn(ExperimentalMaterial3Api::class)
+          @Composable
+          fun RecordEditorSheet(
+              initialType: String, editingRecord: BabyRecordEntity?, defaultDate: LocalDate,
+              onDismiss: () -> Unit, onSave: (BabyRecordEntity) -> Unit, onDelete: (BabyRecordEntity) -> Unit
+          ) {
+              val zone = ZoneId.systemDefault()
+              val initDT = remember(editingRecord, defaultDate) {
+                  editingRecord?.let { Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDateTime() }
+                      ?: LocalDateTime.of(defaultDate, LocalTime.now())
+              }
+              var date by remember { mutableStateOf(initDT.toLocalDate()) }
+              var time by remember { mutableStateOf(initDT.toLocalTime()) }
+              var bottleType by remember { mutableStateOf(editingRecord?.condition ?: "formula") }
+              var amountText by remember { mutableStateOf((editingRecord?.amount ?: 90).toString()) }
+              var durationText by remember { mutableStateOf((editingRecord?.duration ?: 15).toString()) }
+              var side by remember { mutableStateOf(editingRecord?.side ?: "both") }
+              var stoolCond by remember { mutableStateOf(editingRecord?.condition ?: "normal") }
+              var spitCond by remember { mutableStateOf(editingRecord?.condition ?: "small") }
+              var weightText by remember { mutableStateOf(editingRecord?.weight?.toString() ?: "") }
+              var noteText by remember { mutableStateOf(editingRecord?.note ?: "") }
+              var showDate by remember { mutableStateOf(false) }
+              var showTime by remember { mutableStateOf(false) }
+              var showDelConfirm by remember { mutableStateOf(false) }
+              val activeType = editingRecord?.type ?: initialType
+              val typeName = when (activeType) {
+                  RecordType.BOTTLE -> "喝奶"; RecordType.BREAST -> "亲喂母乳"; RecordType.STOOL -> "大便"
+                  RecordType.URINE -> "小便"; RecordType.SPIT -> "吐奶"; RecordType.WEIGHT -> "体重"; else -> "记录"
+              }
+
+              ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+                  Column(
+                      Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp),
+                      verticalArrangement = Arrangement.spacedBy(12.dp)
+                  ) {
+                      Text((if (editingRecord == null) "记一笔 · " else "编辑 · ") + typeName, style = MaterialTheme.typography.titleLarge)
+                      Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrange
